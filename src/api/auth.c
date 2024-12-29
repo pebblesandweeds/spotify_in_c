@@ -5,6 +5,39 @@
 #include "api/auth.h"
 #include "core/http.h"
 
+static char *base64_encode(const char *input) {
+    static const char base64_chars[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    size_t input_len = strlen(input);
+    size_t output_len = 4 * ((input_len + 2) / 3);
+
+    char *encoded = (char *)malloc(output_len + 1);
+    if (encoded == NULL) {
+        return NULL;
+    }
+
+    size_t i = 0, j = 0;
+    while (i < input_len) {
+        uint32_t octet_a = i < input_len ? (unsigned char)input[i++] : 0;
+        uint32_t octet_b = i < input_len ? (unsigned char)input[i++] : 0;
+        uint32_t octet_c = i < input_len ? (unsigned char)input[i++] : 0;
+
+        uint32_t triple = (octet_a << 16) + (octet_b << 8) + octet_c;
+
+        encoded[j++] = base64_chars[(triple >> 18) & 0x3F];
+        encoded[j++] = base64_chars[(triple >> 12) & 0x3F];
+        encoded[j++] = base64_chars[(triple >> 6) & 0x3F];
+        encoded[j++] = base64_chars[triple & 0x3F];
+    }
+
+    if (input_len % 3 >= 1) encoded[output_len - 1] = '=';
+    if (input_len % 3 == 1) encoded[output_len - 2] = '=';
+
+    encoded[output_len] = '\0';
+    return encoded;
+}
+
 static char *extract_access_token(const char *json_response) {
     const char *access_token_start = strstr(json_response, "\"access_token\":\"");
     if (access_token_start == NULL) {
@@ -29,17 +62,30 @@ static char *extract_access_token(const char *json_response) {
 }
 
 char *fetch_spotify_token(const char *client_id, const char *client_secret) {
-    char postfields[256];
-    snprintf(postfields, sizeof(postfields), 
-             "grant_type=client_credentials&client_id=%s&client_secret=%s", 
-             client_id, client_secret);
+    // Create the auth string (client_id:client_secret)
+    char auth_input[256];
+    snprintf(auth_input, sizeof(auth_input), "%s:%s", client_id, client_secret);
+
+    // Base64 encode it
+    char *encoded_auth = base64_encode(auth_input);
+    if (encoded_auth == NULL) {
+        return NULL;
+    }
+
+    // Create Authorization header
+    char auth_header[512];
+    snprintf(auth_header, sizeof(auth_header), "Authorization: Basic %s", encoded_auth);
+    free(encoded_auth);
+
+    char postfields[] = "grant_type=client_credentials";
 
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, "Content-Type: application/x-www-form-urlencoded");
+    headers = curl_slist_append(headers, auth_header);
 
     char *token_response = perform_http_request(
-        "https://accounts.spotify.com/api/token", 
-        postfields, 
+        "https://accounts.spotify.com/api/token",
+        postfields,
         headers
     );
 
@@ -82,39 +128,6 @@ char *generate_auth_url(const char *client_id) {
              base_url, client_id, response_type, redirect_uri, scope);
 
     return auth_url;
-}
-
-static char *base64_encode(const char *input) {
-    static const char base64_chars[] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    size_t input_len = strlen(input);
-    size_t output_len = 4 * ((input_len + 2) / 3);
-
-    char *encoded = (char *)malloc(output_len + 1);
-    if (encoded == NULL) {
-        return NULL;
-    }
-
-    size_t i = 0, j = 0;
-    while (i < input_len) {
-        uint32_t octet_a = i < input_len ? (unsigned char)input[i++] : 0;
-        uint32_t octet_b = i < input_len ? (unsigned char)input[i++] : 0;
-        uint32_t octet_c = i < input_len ? (unsigned char)input[i++] : 0;
-
-        uint32_t triple = (octet_a << 16) + (octet_b << 8) + octet_c;
-
-        encoded[j++] = base64_chars[(triple >> 18) & 0x3F];
-        encoded[j++] = base64_chars[(triple >> 12) & 0x3F];
-        encoded[j++] = base64_chars[(triple >> 6) & 0x3F];
-        encoded[j++] = base64_chars[triple & 0x3F];
-    }
-
-    if (input_len % 3 >= 1) encoded[output_len - 1] = '=';
-    if (input_len % 3 == 1) encoded[output_len - 2] = '=';
-
-    encoded[output_len] = '\0';
-    return encoded;
 }
 
 static char *extract_auth_code(const char *callback_url) {
