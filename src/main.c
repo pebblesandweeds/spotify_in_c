@@ -69,6 +69,15 @@ int test_auth_url() {
     char *token = process_auth_callback_url(callback_url, client_id, client_secret);
     if (token != NULL) {
         printf("Successfully retrieved access token: %s\n", token);
+        
+        char *playlists = fetch_user_playlists(token);
+        if (playlists != NULL) {
+            printf("Your playlists:\n%s\n", playlists);
+            free(playlists);
+        } else {
+            fprintf(stderr, "Failed to fetch playlists.\n");
+        }
+
         free_spotify_token(token);
     } else {
         fprintf(stderr, "Failed to process callback URL.\n");

@@ -23,8 +23,17 @@ char *fetch_artist_info(const char *artist_id, const char *token) {
 }
 
 char *fetch_user_playlists(const char *token) {
-    // TODO: Implement
-    return NULL;
+    char auth_header[256];
+    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
+
+    struct curl_slist *headers = NULL;
+    headers = curl_slist_append(headers, auth_header);
+
+    return perform_http_request(
+        "https://api.spotify.com/v1/me/playlists",
+        NULL,  // No POST fields for GET request
+        headers
+    );
 }
 
 char *fetch_playlist_tracks(const char *playlist_id, const char *token) {
