@@ -7,51 +7,39 @@ export SPOTIFY_CLIENT_ID='your_id'
 export SPOTIFY_CLIENT_SECRET='your_secret'
 ```
 
-* Run the command below to run the test connectivity API call (need to run `make` first of course)
+* Run the command below to run the test connectivity API call (need to run `make` first)
 
 `./spotify_in_c test`
+
+* Log into Spotify using your default host browser, then run 
+
+`./spotify_in_c auth`
+
+* All your user playlists will be list in raw JSON
 
 ## Project Structure
 
 ```
-spotify-playlist-manager/
+spotify_in-c/
 ├── include/
-│   ├── api/            # Existing API stuff
-│   │   ├── auth.h
-│   │   └── endpoints.h
-│   ├── core/           # Existing core stuff
-│   │   ├── config.h
-│   │   └── http.h
-│   └── structures/     # NEW: Our data structures
-│       ├── playlist.h  # Doubly linked list for playlist management
-│       ├── queue.h     # Singly linked list for change tracking
-│       └── collection.h # Circular linked list for playlist collections
+│   ├── api/           # API interfaces
+│   │   ├── auth.h     # OAuth2 authentication
+│   │   └── endpoints.h # Spotify API endpoints
+│   └── core/          # Core functionality
+│       ├── config.h   # Configuration & environment
+│       ├── http.h     # HTTP request handling
+│       └── server.h   # OAuth callback server
 │
 ├── src/
-│   ├── api/            # Existing API stuff
-│   │   ├── auth.c
-│   │   └── endpoints.c
-│   ├── core/           # Existing core stuff
-│   │   ├── config.c
-│   │   └── http.c
-│   ├── structures/     # NEW: Implementations
-│   │   ├── playlist.c  # Playlist operations
-│   │   ├── queue.c     # Change queue operations
-│   │   └── collection.c # Collection management
-│   └── main.c         # Main program & test function
+│   ├── api/           # API implementations
+│   │   ├── auth.c     # OAuth2 implementation
+│   │   └── endpoints.c # API endpoint implementations
+│   ├── core/          # Core implementations
+│   │   ├── config.c   # Configuration management
+│   │   ├── http.c     # HTTP client logic
+│   │   └── server.c   # Local callback server
+│   └── main.c         # Main program & CLI
 │
-├── build/             # Compiled objects
-│   ├── api/
-│   │   ├── auth.o
-│   │   └── endpoints.o
-│   ├── core/
-│   │   ├── config.o
-│   │   └── http.o
-│   └── structures/
-│       ├── playlist.o
-│       ├── queue.o
-│       └── collection.o
-│
-├── Makefile
-└── README.md
+├── Makefile          # Build configuration
+└── README.md         # Project documentation
 ```
